@@ -13,7 +13,7 @@
                 <platform><%= im['TEMPLATE/PLATFORM'] %></platform>
                 <% end %>
                 <imageId>ami-<%= sprintf('%08i', im.id) %></imageId>
-                <imageLocation><%= im['SOURCE'].split('/').last %></imageLocation>
+                <imageLocation><%= im['NAME'] %></imageLocation>
                 <imageState><%= state_image %></imageState>
                 <imageOwnerId><%= im['UNAME'] %></imageOwnerId>
                 <isPublic><%= im.public? ? "true" : "false" %></isPublic>
