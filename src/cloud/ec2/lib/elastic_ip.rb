@@ -215,8 +215,35 @@ module ElasticIP
     private
 
     def retrieve_eip_vnet
-        vnet = VirtualNetwork.new(VirtualNetwork.build_xml(@config[:elasticips_vnet_id]),@oneadmin_client)
-        rc   = vnet.info
+        vnet_id = @config[:elasticips_vnet_id]
+        vnet_name = @config[:elasticips_vnet_name]
+        if vnet_id.nil? and not vnet_name.nil?
+            vnet_pool = VirtualNetworkPool.new(@oneadmin_client, -2)
+            vnet_pool.info
+
+            # User information to substitute in VNet name
+            user = User.new_with_id(OpenNebula::User::SELF, @client)
+            user.info
+            subst = {
+                'USER_NAME' => user.name,
+                'USER_ID'   => user.id
+            }
+            subst.each do |k,v|
+                vnet_name = vnet_name.gsub("<#{k}>", v.to_s)  # DON'T use "gsub!"
+            end
+
+            logger.info { "Elastic IPs VNet for user #{user.name} (#{user.id}): #{vnet_name}" }
+            vnet_pool.each do |v|
+                if v.name == vnet_name
+                    vnet_id = v.id
+                    logger.info { "Elastic IPs VNet ID: #{vnet_id}" }
+                    break
+                end
+            end
+        end
+
+        vnet = VirtualNetwork.new(VirtualNetwork.build_xml(vnet_id), @oneadmin_client)
+        rc  = vnet.info
 
         if OpenNebula::is_error?(rc)
             return rc
