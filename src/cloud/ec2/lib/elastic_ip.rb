@@ -134,6 +134,9 @@ module ElasticIP
         if OpenNebula::is_error?(rc)
             logger.error {rc.message}
             return rc
+        elsif VirtualMachine::LCM_STATE[vm.lcm_state] != 'RUNNING' or VirtualMachine::VM_STATE[vm.state] != 'ACTIVE'
+            rc = OpenNebula::Error.new("Can't associate IP to VM #{vm.id}: VM must be ACTIVE and RUNNING")
+            return rc
         end
 
         ips = vm.retrieve_elements('TEMPLATE/NIC/IP')
@@ -218,6 +221,7 @@ module ElasticIP
         vnet_id = @config[:elasticips_vnet_id]
         vnet_name = @config[:elasticips_vnet_name]
         if vnet_id.nil? and not vnet_name.nil?
+            logger.info { "Using name template instead of ID for Elastic IPs network" }
             vnet_pool = VirtualNetworkPool.new(@oneadmin_client, -2)
             vnet_pool.info
 
