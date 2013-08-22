@@ -8,7 +8,7 @@
        <publicIp><%= eip["IP"] %></publicIp>
        <domain>standard</domain>
        <% if vm_id = vnet["TEMPLATE/EC2_ADDRESSES[IP=\"#{eip["IP"]}\"]/VMID"] %>
-       <instanceId>i-<%= sprintf('%08i', vm_id) %></instanceId>
+       <instanceId>i-<%= sprintf('%08i', vm_id.to_i) %></instanceId>
        <% else %>
        <instanceId/>
        <% end %>
