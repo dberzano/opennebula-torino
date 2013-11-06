@@ -233,7 +233,7 @@ module ElasticIP
                 'USER_ID'   => user.id
             }
             subst.each do |k,v|
-                vnet_name.gsub!("<#{k}>", v.to_s)
+                vnet_name = vnet_name.gsub("<#{k}>", v.to_s)  # DON'T use "gsub!"
             end
 
             logger.info { "Elastic IPs VNet for user #{user.name} (#{user.id}): #{vnet_name}" }
