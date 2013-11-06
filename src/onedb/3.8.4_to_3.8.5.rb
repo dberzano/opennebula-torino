@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------------- #
-# Copyright 2002-2013, OpenNebula Project Leads (OpenNebula.org)             #
+# Copyright 2002-2013, OpenNebula Project (OpenNebula.org), C12G Labs        #
 #                                                                            #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may    #
 # not use this file except in compliance with the License. You may obtain    #
@@ -14,25 +14,16 @@
 # limitations under the License.                                             #
 #--------------------------------------------------------------------------- #
 
-# Default configuration attributes for the KVM driver
-# (all domains will use these values as defaults).  These values can
-# be overridden in each VM template. Valid atributes are:
-#  - emulator
-#  - os [kernel,initrd,boot,root,kernel_cmd,arch]
-#  - vcpu
-#  - features [acpi, pae]
-#  - disk [driver, cache]
-#  - nic  [filter, model]
-#  - raw
+module Migrator
+    def db_version
+        "3.8.5"
+    end
 
-#EMULATOR = /usr/libexec/qemu-kvm
+    def one_version
+        "OpenNebula 3.8.5"
+    end
 
-#VCPU = 1
-
-OS       = [ boot = "hd", arch = "i686" ]
-FEATURES = [ PAE = "no", ACPI = "yes" ]
-
-DISK     = [ driver = "raw" , cache = "default"]
-
-#NIC     = [ filter = "clean-traffic", model="virtio" ]
-#RAW     = "<devices><serial type=\"pty\"><source path=\"/dev/pts/5\"/><target port=\"0\"/></serial><console type=\"pty\" tty=\"/dev/pts/5\"><source path=\"/dev/pts/5\"/><target port=\"0\"/></console></devices>"
+    def up
+        return true
+    end
+end
