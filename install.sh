@@ -276,6 +276,7 @@ VAR_DIRS="$VAR_LOCATION/remotes \
           $VAR_LOCATION/remotes/tm/lvm \
           $VAR_LOCATION/remotes/tm/ceph \
           $VAR_LOCATION/remotes/tm/dev \
+          $VAR_LOCATION/remotes/tm/iscsi \
           $VAR_LOCATION/remotes/hooks \
           $VAR_LOCATION/remotes/hooks/ft \
           $VAR_LOCATION/remotes/datastore \
@@ -285,6 +286,7 @@ VAR_DIRS="$VAR_LOCATION/remotes \
           $VAR_LOCATION/remotes/datastore/lvm \
           $VAR_LOCATION/remotes/datastore/ceph \
           $VAR_LOCATION/remotes/datastore/dev \
+          $VAR_LOCATION/remotes/datastore/iscsi \
           $VAR_LOCATION/remotes/auth \
           $VAR_LOCATION/remotes/auth/plain \
           $VAR_LOCATION/remotes/auth/ssh \
@@ -437,6 +439,7 @@ INSTALL_FILES=(
     TM_CEPH_FILES:$VAR_LOCATION/remotes/tm/ceph
     TM_DEV_FILES:$VAR_LOCATION/remotes/tm/dev
     TM_DUMMY_FILES:$VAR_LOCATION/remotes/tm/dummy
+    TM_ISCSI_FILES:$VAR_LOCATION/remotes/tm/iscsi
     DATASTORE_DRIVER_COMMON_SCRIPTS:$VAR_LOCATION/remotes/datastore/
     DATASTORE_DRIVER_DUMMY_SCRIPTS:$VAR_LOCATION/remotes/datastore/dummy
     DATASTORE_DRIVER_FS_SCRIPTS:$VAR_LOCATION/remotes/datastore/fs
@@ -444,6 +447,7 @@ INSTALL_FILES=(
     DATASTORE_DRIVER_LVM_SCRIPTS:$VAR_LOCATION/remotes/datastore/lvm
     DATASTORE_DRIVER_CEPH_SCRIPTS:$VAR_LOCATION/remotes/datastore/ceph
     DATASTORE_DRIVER_DEV_SCRIPTS:$VAR_LOCATION/remotes/datastore/dev
+    DATASTORE_DRIVER_ISCSI_SCRIPTS:$VAR_LOCATION/remotes/datastore/iscsi
     NETWORK_FILES:$VAR_LOCATION/remotes/vnm
     NETWORK_8021Q_FILES:$VAR_LOCATION/remotes/vnm/802.1Q
     NETWORK_DUMMY_FILES:$VAR_LOCATION/remotes/vnm/dummy
@@ -647,7 +651,8 @@ RUBY_AUTH_LIB_FILES="src/authm_mad/remotes/ssh/ssh_auth.rb \
 # and remotes directory
 #-----------------------------------------------------------------------------
 
-MAD_SH_LIB_FILES="src/mad/sh/scripts_common.sh"
+MAD_SH_LIB_FILES="src/mad/sh/scripts_common.sh
+		src/datastore_mad/remotes/ts-809u.sh"
 MAD_RUBY_LIB_FILES="src/mad/ruby/scripts_common.rb"
 
 #-------------------------------------------------------------------------------
@@ -1053,6 +1058,13 @@ TM_DEV_FILES="src/tm_mad/dev/clone \
                  src/tm_mad/dev/postmigrate \
                  src/tm_mad/dev/delete"
 
+TM_ISCSI_FILES="src/tm_mad/iscsi/clone \
+              src/tm_mad/iscsi/delete \
+              src/tm_mad/iscsi/ln \
+              src/tm_mad/iscsi/mv \
+              src/tm_mad/iscsi/premigrate \
+              src/tm_mad/iscsi/postmigrate"
+
 #-------------------------------------------------------------------------------
 # Datastore drivers, to be installed under $REMOTES_LOCATION/datastore
 #   - Dummy Image Repository, $REMOTES_LOCATION/datastore/dummy
@@ -1109,6 +1121,12 @@ DATASTORE_DRIVER_DEV_SCRIPTS="src/datastore_mad/remotes/dev/cp \
                          src/datastore_mad/remotes/dev/rm \
                          src/datastore_mad/remotes/dev/monitor \
                          src/datastore_mad/remotes/dev/clone"
+
+DATASTORE_DRIVER_ISCSI_SCRIPTS="src/datastore_mad/remotes/iscsi/cp \
+                         src/datastore_mad/remotes/iscsi/mkfs \
+                         src/datastore_mad/remotes/iscsi/stat \
+                         src/datastore_mad/remotes/iscsi/rm \
+                         src/datastore_mad/remotes/iscsi/clone"
 
 #-------------------------------------------------------------------------------
 # Migration scripts for onedb command, to be installed under $LIB_LOCATION
