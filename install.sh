@@ -1059,9 +1059,11 @@ TM_DEV_FILES="src/tm_mad/dev/clone \
                  src/tm_mad/dev/delete"
 
 TM_ISCSI_FILES="src/tm_mad/iscsi/clone \
+              src/tm_mad/iscsi/cpds \
               src/tm_mad/iscsi/delete \
               src/tm_mad/iscsi/ln \
               src/tm_mad/iscsi/mv \
+              src/tm_mad/iscsi/mvds \
               src/tm_mad/iscsi/premigrate \
               src/tm_mad/iscsi/postmigrate"
 
@@ -1122,11 +1124,14 @@ DATASTORE_DRIVER_DEV_SCRIPTS="src/datastore_mad/remotes/dev/cp \
                          src/datastore_mad/remotes/dev/monitor \
                          src/datastore_mad/remotes/dev/clone"
 
-DATASTORE_DRIVER_ISCSI_SCRIPTS="src/datastore_mad/remotes/iscsi/cp \
+DATASTORE_DRIVER_ISCSI_SCRIPTS="src/datastore_mad/remotes/iscsi/clone \
+                         src/datastore_mad/remotes/iscsi/cp \
+                         src/datastore_mad/remotes/iscsi/iscsi.conf \
                          src/datastore_mad/remotes/iscsi/mkfs \
-                         src/datastore_mad/remotes/iscsi/stat \
+                         src/datastore_mad/remotes/iscsi/monitor \
                          src/datastore_mad/remotes/iscsi/rm \
-                         src/datastore_mad/remotes/iscsi/clone"
+                         src/datastore_mad/remotes/iscsi/scan_images.rb \
+                         src/datastore_mad/remotes/iscsi/stat"
 
 #-------------------------------------------------------------------------------
 # Migration scripts for onedb command, to be installed under $LIB_LOCATION
