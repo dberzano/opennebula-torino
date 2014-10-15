@@ -16,13 +16,11 @@
 # limitations under the License.                                             #
 #--------------------------------------------------------------------------- #
 
-# ------------------------------------------------------------------------------
-#  Set up Environment and transfer arguments
-# ------------------------------------------------------------------------------
-#
-#  vmfs.conf: includes default TMP_DIR
-#  libfs.sh a& scripts_common.sh: includes tools and lib calls
-# ------------------------------------------------------------------------------
+###############################################################################
+# This script is used to monitor the free and used space of a datastore
+###############################################################################
+
+# -------- Set up the environment to source common tools & conf ------------
 
 if [ -z "${ONE_LOCATION}" ]; then
     LIB_LOCATION=/usr/lib/one
@@ -34,31 +32,55 @@ fi
 
 DRIVER_PATH=$(dirname $0)
 source ${DRIVER_PATH}/../libfs.sh
+source ${DRIVER_PATH}/iscsi.conf
 
-# -------- Get stat and datastore arguments from OpenNebula core ------------
+# -------- Get datastore arguments from OpenNebula core ------------
 
 DRV_ACTION=$1
 ID=$2
 
 XPATH="${DRIVER_PATH}/../xpath.rb -b $DRV_ACTION"
 
-unset i XPATH_ELEMENTS
+unset i j XPATH_ELEMENTS
 
 while IFS= read -r -d '' element; do
     XPATH_ELEMENTS[i++]="$element"
-done < <($XPATH /DS_DRIVER_ACTION_DATA/IMAGE/PATH)
+done < <($XPATH     /DS_DRIVER_ACTION_DATA/DATASTORE/TEMPLATE/BRIDGE_LIST \
+                    /DS_DRIVER_ACTION_DATA/DATASTORE/TEMPLATE/VG_NAME)
 
-SRC="${XPATH_ELEMENTS[0]}"
+BRIDGE_LIST="${XPATH_ELEMENTS[j++]}"
+VG_NAME="${XPATH_ELEMENTS[j++]:-$VG_NAME}"
 
-# ------------------------------------------------------------------------------
-#  Compute the size
-# ------------------------------------------------------------------------------
+HOST=`get_destination_host`
 
-SIZE=`fs_size $SRC`
-
-if [ "$SIZE" = "0" ]; then
-    log_error "Cannot determine size for $SRC"
+if [ -z "$HOST" ]; then
+    error_message "Datastore template missing 'BRIDGE_LIST' attribute."
     exit -1
 fi
 
-echo "$SIZE"
+# ------------ Compute datastore usage -------------
+
+MONITOR_SCRIPT=$(cat <<EOF
+set -e
+
+VG_OPTS="--units M -C --noheadings --nosuffix $VG_NAME"
+
+TOTAL_MB=\$($SUDO $VGDISPLAY -o vg_size \$VG_OPTS | $TR -d ' ')
+FREE_MB=\$($SUDO $VGDISPLAY -o vg_free \$VG_OPTS | $TR -d ' ')
+USED_MB=\$($AWK "BEGIN {print \$TOTAL_MB - \$FREE_MB}")
+
+echo "USED_MB=\$USED_MB"
+echo "TOTAL_MB=\$TOTAL_MB"
+echo "FREE_MB=\$FREE_MB"
+EOF
+)
+
+MONITOR_DATA=$(ssh_monitor_and_log $HOST "$MONITOR_SCRIPT" 2>&1)
+MONITOR_STATUS=$?
+
+if [ "$MONITOR_STATUS" = "0" ]; then
+    echo "$MONITOR_DATA" | tr ' ' '\n'
+else
+    echo "$MONITOR_DATA"
+    exit $MONITOR_STATUS
+fi

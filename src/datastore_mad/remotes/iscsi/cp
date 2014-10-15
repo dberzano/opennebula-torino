@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # -------------------------------------------------------------------------- #
-# Copyright 2002-2013, OpenNebula Project Leads (OpenNebula.org)             #
+# Copyright 2002-2013, OpenNebula Project (OpenNebula.org), C12G Labs        #
 #                                                                            #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may    #
 # not use this file except in compliance with the License. You may obtain    #
@@ -44,15 +44,14 @@ UTILS_PATH="${DRIVER_PATH}/.."
 
 XPATH="$UTILS_PATH/xpath.rb -b $DRV_ACTION"
 
-unset i XPATH_ELEMENTS
+unset i j XPATH_ELEMENTS
 
 while IFS= read -r -d '' element; do
     XPATH_ELEMENTS[i++]="$element"
 done < <($XPATH     /DS_DRIVER_ACTION_DATA/DATASTORE/BASE_PATH \
                     /DS_DRIVER_ACTION_DATA/DATASTORE/TEMPLATE/RESTRICTED_DIRS \
                     /DS_DRIVER_ACTION_DATA/DATASTORE/TEMPLATE/SAFE_DIRS \
-                    /DS_DRIVER_ACTION_DATA/DATASTORE/TEMPLATE/UMASK \
-                    /DS_DRIVER_ACTION_DATA/DATASTORE/TEMPLATE/HOST \
+                    /DS_DRIVER_ACTION_DATA/DATASTORE/TEMPLATE/BRIDGE_LIST \
                     /DS_DRIVER_ACTION_DATA/DATASTORE/TEMPLATE/VG_NAME \
                     /DS_DRIVER_ACTION_DATA/DATASTORE/TEMPLATE/BASE_IQN \
                     /DS_DRIVER_ACTION_DATA/IMAGE/PATH \
@@ -62,21 +61,30 @@ done < <($XPATH     /DS_DRIVER_ACTION_DATA/DATASTORE/BASE_PATH \
                     /DS_DRIVER_ACTION_DATA/DATASTORE/TEMPLATE/NO_DECOMPRESS \
                     /DS_DRIVER_ACTION_DATA/DATASTORE/TEMPLATE/LIMIT_TRANSFER_BW)
 
-BASE_PATH="${XPATH_ELEMENTS[0]}"
-RESTRICTED_DIRS="${XPATH_ELEMENTS[1]}"
-SAFE_DIRS="${XPATH_ELEMENTS[2]}"
-UMASK="${XPATH_ELEMENTS[3]}"
-DST_HOST="${XPATH_ELEMENTS[4]:-$HOST}"
-VG_NAME="${XPATH_ELEMENTS[5]:-$VG_NAME}"
-BASE_IQN="${XPATH_ELEMENTS[6]:-$BASE_IQN}"
-SRC="${XPATH_ELEMENTS[7]}"
-SIZE="${XPATH_ELEMENTS[8]}"
-MD5="${XPATH_ELEMENTS[9]}"
-SHA1="${XPATH_ELEMENTS[10]}"
-NO_DECOMPRESS="${XPATH_ELEMENTS[11]}"
-LIMIT_TRANSFER_BW="${XPATH_ELEMENTS[12]}"
+BASE_PATH="${XPATH_ELEMENTS[j++]}"
+RESTRICTED_DIRS="${XPATH_ELEMENTS[j++]}"
+SAFE_DIRS="${XPATH_ELEMENTS[j++]}"
+BRIDGE_LIST="${XPATH_ELEMENTS[j++]}"
+VG_NAME="${XPATH_ELEMENTS[j++]:-$VG_NAME}"
+BASE_IQN="${XPATH_ELEMENTS[j++]:-$BASE_IQN}"
+SRC="${XPATH_ELEMENTS[j++]}"
+SIZE="${XPATH_ELEMENTS[j++]}"
+MD5="${XPATH_ELEMENTS[j++]}"
+SHA1="${XPATH_ELEMENTS[j++]}"
+NO_DECOMPRESS="${XPATH_ELEMENTS[j++]}"
+LIMIT_TRANSFER_BW="${XPATH_ELEMENTS[j++]}"
 
-set_up_datastore "$BASE_PATH" "$RESTRICTED_DIRS" "$SAFE_DIRS" "$UMASK"
+DST_HOST=`get_destination_host $ID`
+
+if [ -z "$DST_HOST" ]; then
+    error_message "Datastore template missing 'BRIDGE_LIST' attribute."
+    exit -1
+fi
+
+# Check if 'TGTSETUPLUN' is installed
+tgt_setup_lun_install "$DST_HOST" "$BASE_PATH"
+
+set_up_datastore "$BASE_PATH" "$RESTRICTED_DIRS" "$SAFE_DIRS"
 
 LV_NAME="lv-one-${ID}"
 IQN="$BASE_IQN:$DST_HOST.$VG_NAME.$LV_NAME"
@@ -86,13 +94,7 @@ REGISTER_CMD=$(cat <<EOF
     set -e
     $SUDO $LVCREATE -L${SIZE}M ${VG_NAME} -n ${LV_NAME}
 
-    TID=\$($SUDO $(tgtadm_next_tid))
-
-    [ -z "\$TID" ] && TID=1
-
-    $SUDO $(tgtadm_target_new "\$TID" "$IQN")
-    $SUDO $(tgtadm_target_bind_all "\$TID")
-    $SUDO $(tgtadm_logicalunit_new "\$TID" "$DEV")
+    $SUDO $(tgt_setup_lun "$IQN" "$DEV")
     $SUDO $(tgt_admin_dump_config "$TARGET_CONF")
 EOF
 )
@@ -123,7 +125,7 @@ esac
 
 ssh_exec_and_log "$DST_HOST" "$REGISTER_CMD" "Error registering $DST_HOST:$DEV"
 
-exec_and_log "eval $DUMP | $SSH $DST_HOST $SUDO $DD of=$DEV bs=64k" \
+exec_and_log "eval $DUMP | $SSH $DST_HOST $SUDO $DD of=$DEV bs=2M" \
     "Error dumping $SRC to $DST_HOST:$DEV"
 
 echo "$IQN"

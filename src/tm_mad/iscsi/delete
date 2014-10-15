@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # -------------------------------------------------------------------------- #
-# Copyright 2002-2013, OpenNebula Project Leads (OpenNebula.org)             #
+# Copyright 2002-2013, OpenNebula Project (OpenNebula.org), C12G Labs        #
 #                                                                            #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may    #
 # not use this file except in compliance with the License. You may obtain    #
@@ -54,7 +54,7 @@ DISK_ID=$(echo "$DST_PATH" | $AWK -F. '{print $NF}')
 
 XPATH="${DRIVER_PATH}/../../datastore/xpath.rb --stdin"
 
-unset i XPATH_ELEMENTS
+unset i j XPATH_ELEMENTS
 
 while IFS= read -r -d '' element; do
     XPATH_ELEMENTS[i++]="$element"
@@ -62,8 +62,8 @@ done < <(onevm show -x $VMID| $XPATH \
                     /VM/TEMPLATE/DISK[DISK_ID=$DISK_ID]/SOURCE \
                     /VM/TEMPLATE/DISK[DISK_ID=$DISK_ID]/PERSISTENT)
 
-IQN="${XPATH_ELEMENTS[0]}"
-PERSISTENT="${XPATH_ELEMENTS[1]}"
+IQN="${XPATH_ELEMENTS[j++]}"
+PERSISTENT="${XPATH_ELEMENTS[j++]}"
 
 if [ -z "$PERSISTENT" ]; then
     NEW_IQN=$IQN-$VMID
@@ -112,7 +112,7 @@ fi
 #-------------------------------------------------------------------------------
 
 DELETE_CMD=$(cat <<EOF
-    #set -e
+    set -e
     # get tid for IQN
     TID=\$($SUDO $(tgtadm_get_tid_for_iqn "$NEW_IQN"))
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # -------------------------------------------------------------------------- #
-# Copyright 2002-2013, OpenNebula Project Leads (OpenNebula.org)             #
+# Copyright 2002-2013, OpenNebula Project (OpenNebula.org), C12G Labs        #
 #                                                                            #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may    #
 # not use this file except in compliance with the License. You may obtain    #
@@ -42,36 +42,34 @@ ID=$2
 
 XPATH="${DRIVER_PATH}/../xpath.rb -b $DRV_ACTION"
 
-unset i XPATH_ELEMENTS
+unset i j XPATH_ELEMENTS
 
 while IFS= read -r -d '' element; do
     XPATH_ELEMENTS[i++]="$element"
 done < <($XPATH     /DS_DRIVER_ACTION_DATA/DATASTORE/BASE_PATH \
                     /DS_DRIVER_ACTION_DATA/DATASTORE/TEMPLATE/RESTRICTED_DIRS \
                     /DS_DRIVER_ACTION_DATA/DATASTORE/TEMPLATE/SAFE_DIRS \
-                    /DS_DRIVER_ACTION_DATA/DATASTORE/TEMPLATE/UMASK \
-                    /DS_DRIVER_ACTION_DATA/DATASTORE/TEMPLATE/HOST \
+                    /DS_DRIVER_ACTION_DATA/DATASTORE/TEMPLATE/BRIDGE_LIST \
                     /DS_DRIVER_ACTION_DATA/DATASTORE/TEMPLATE/VG_NAME \
                     /DS_DRIVER_ACTION_DATA/DATASTORE/TEMPLATE/BASE_IQN \
                     /DS_DRIVER_ACTION_DATA/IMAGE/FSTYPE \
                     /DS_DRIVER_ACTION_DATA/IMAGE/SIZE \
                     /DS_DRIVER_ACTION_DATA/IMAGE/SOURCE) # added by SV 
 
-BASE_PATH="${XPATH_ELEMENTS[0]}"
-RESTRICTED_DIRS="${XPATH_ELEMENTS[1]}"
-SAFE_DIRS="${XPATH_ELEMENTS[2]}"
-UMASK="${XPATH_ELEMENTS[3]}"
-DST_HOST="${XPATH_ELEMENTS[4]:-$HOST}"
-VG_NAME="${XPATH_ELEMENTS[5]:-$VG_NAME}"
-BASE_IQN="${XPATH_ELEMENTS[6]:-$BASE_IQN}"
-FSTYPE="${XPATH_ELEMENTS[7]}"
-SIZE="${XPATH_ELEMENTS[8]:-0}"
-SOURCE="${XPATH_ELEMENTS[9]}" # added by SV
+BASE_PATH="${XPATH_ELEMENTS[j++]}"
+RESTRICTED_DIRS="${XPATH_ELEMENTS[j++]}"
+SAFE_DIRS="${XPATH_ELEMENTS[j++]}"
+BRIDGE_LIST="${XPATH_ELEMENTS[j++]}"
+VG_NAME="${XPATH_ELEMENTS[j++]:-$VG_NAME}"
+BASE_IQN="${XPATH_ELEMENTS[j++]:-$BASE_IQN}"
+FSTYPE="${XPATH_ELEMENTS[j++]}"
+SIZE="${XPATH_ELEMENTS[j++]:-0}"
+SOURCE="${XPATH_ELEMENTS[j++]}" # added by SV
 
 # added by SV #########################################
 # do not create block on target if iqn is specified in 
 # the image template as SOURCE="iqn-..."
-if [ ${SOURCE} != "-" ];then 
+if [ ${SOURCE} != "-" ];then
   DS_ID=$(basename $BASE_PATH)
   EXR=`ruby ${DRIVER_PATH}/scan_images.rb ${DS_ID} ${SOURCE} ${ID}`
   if [ ! -z "${EXR}" ];then
@@ -79,12 +77,22 @@ if [ ${SOURCE} != "-" ];then
     exit 1
   else
     echo ${SOURCE}
-    exit 0 
+    exit 0
   fi
 fi
 ########################################################
 
-set_up_datastore "$BASE_PATH" "$RESTRICTED_DIRS" "$SAFE_DIRS" "$UMASK"
+DST_HOST=`get_destination_host $ID`
+
+if [ -z "$DST_HOST" ]; then
+    error_message "Datastore template missing 'BRIDGE_LIST' attribute."
+    exit -1
+fi
+
+# Check if 'TGTSETUPLUN' is installed
+tgt_setup_lun_install "$DST_HOST" "$BASE_PATH"
+
+set_up_datastore "$BASE_PATH" "$RESTRICTED_DIRS" "$SAFE_DIRS"
 
 LV_NAME="lv-one-${ID}"
 IQN="$BASE_IQN:$DST_HOST.$VG_NAME.$LV_NAME"
@@ -94,12 +102,7 @@ REGISTER_CMD=$(cat <<EOF
     set -e
     $SUDO $LVCREATE -L${SIZE}M ${VG_NAME} -n ${LV_NAME}
 
-    TID=\$($SUDO $(tgtadm_next_tid))
-    [ -z "\$TID" ] && TID=1
-
-    $SUDO $(tgtadm_target_new "\$TID" "$IQN")
-    $SUDO $(tgtadm_target_bind_all "\$TID")
-    $SUDO $(tgtadm_logicalunit_new "\$TID" "$DEV")
+    $SUDO $(tgt_setup_lun "$IQN" "$DEV")
     $SUDO $(tgt_admin_dump_config "$TARGET_CONF")
 
     if [ "$FSTYPE" != "save_as" ]; then

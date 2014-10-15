@@ -25,7 +25,8 @@ $: << RUBY_LIB_LOCATION
 
 require 'opennebula'
 
-$one_client = OpenNebula::Client.new('oneadmin:xxx','http://localhost:2633/RPC2')
+auth=File.open(ENV['ONE_AUTH']).first
+$one_client = OpenNebula::Client.new($auth,'http://localhost:2633/RPC2')
 
 
 def main
@@ -39,7 +40,7 @@ def main
     puts rc.message
     exit 1
   end
-
+  
   # ...and images therein
   image_pool = OpenNebula::ImagePool.new($one_client, -2)
   rc = image_pool.info
