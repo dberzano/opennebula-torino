@@ -99,6 +99,7 @@ module Instance
             erb_vm_info[:user_data]     = params['UserData']
             erb_vm_info[:public_key]    = fetch_publickey(params)
             erb_vm_info[:key_name]      = params['KeyName']
+            erb_vm_info[:access_key_id] = params['AWSAccessKeyId']
 
             template      = ERB.new(File.read(erb_vm_info[:template]))
             template_text = template.result(binding)
